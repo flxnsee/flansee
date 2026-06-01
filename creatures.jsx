@@ -1,185 +1,161 @@
 /* ============================================================
-   creatures.jsx — the living ASCII ecosystem
-   A full-viewport ambient layer of companions + a cursor trail.
+   creatures.jsx — the living ASCII ecosystem  (v2 — clean)
+   Single-line symbols + sine-wave orbits = smooth, non-overlapping.
    exports: window.CreatureLayer
    ============================================================ */
+
+/* ---- clean single-line creature art ---- */
+const CREATURE_ART = {
+  cat: [
+    ["=^.^=", "=^-^=", "=^.^=", "=^ᵕ^="],
+    ["=^o^=", "=^.^=", "=^o^=", "=^ᵕ^="],
+  ],
+  blob: [
+    ["(°ᴥ°)", "(•ᴥ•)", "(°ᴥ°)", "(ᵔᴥᵔ)"],
+    ["(o . o)", "(- . -)", "(o . o)", "(^ . ^)"],
+  ],
+  spirit: [
+    ["ʕ·ᴥ·ʔ", "ʕ-ᴥ-ʔ", "ʕ·ᴥ·ʔ"],
+    ["( ˘ᵕ˘ )", "( -ᵕ- )", "( ˘ᵕ˘ )"],
+  ],
+};
+
+/* Evenly space N creatures across the canvas using a stratified grid,
+   then jitter each within its cell — guarantees no two home positions
+   are closer than cellSize, so orbits don't intersect. */
+function buildHomePositions(n, W, H, margin = 0.12) {
+  const cols = Math.ceil(Math.sqrt(n * W / H));
+  const rows = Math.ceil(n / cols);
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (cells.length < n) cells.push([c, r, cols, rows]);
+    }
+  }
+  // shuffle so type assignment doesn't cluster by position
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+  const mx = margin, my = margin;
+  return cells.map(([c, r, nc, nr]) => {
+    const cellW = (1 - 2 * mx) / nc;
+    const cellH = (1 - 2 * my) / nr;
+    const jx = (Math.random() * 0.6 + 0.2) * cellW; // jitter within 20–80% of cell
+    const jy = (Math.random() * 0.6 + 0.2) * cellH;
+    return {
+      hx: (mx + c * cellW + jx) * W,
+      hy: (my + r * cellH + jy) * H,
+    };
+  });
+}
 
 function CreatureLayer({ density }) {
   const layerRef = React.useRef(null);
   const trailRef = React.useRef(null);
-  const count = density === "subtle" ? 5 : density === "lively" ? 10 : 16;
+  const count = density === "subtle" ? 5 : density === "lively" ? 8 : 12;
 
   React.useEffect(() => {
     const layer = layerRef.current;
     const trail = trailRef.current;
     if (!layer) return;
     layer.innerHTML = "";
-    const A = window.ASCII;
-    const W = () => window.innerWidth;
-    const H = () => window.innerHeight;
+
+    const W = window.innerWidth;
+    const H = window.innerHeight;
     const rand = (a, b) => a + Math.random() * (b - a);
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    const creatures = [];
-
-    function makeEl(cls) {
-      const el = document.createElement("pre");
-      el.className = "creature " + cls;
-      layer.appendChild(el);
-      return el;
-    }
-
-    // ---------- BLOB: free-floating, drifts + bobs, shy of cursor ----------
-    function spawnBlob() {
-      const el = makeEl("c-blob");
-      const c = {
-        el, type: "blob",
-        x: rand(0.1, 0.9) * W(), y: rand(0.15, 0.85) * H(),
-        vx: rand(-0.25, 0.25), vy: rand(-0.18, 0.18),
-        bob: rand(0, 6.28), bobSpeed: rand(0.01, 0.022), bobAmt: rand(6, 16),
-        frames: A.BLOB_FRAMES, fi: 0,
-        cycle() { this.fi = (this.fi + 1) % this.frames.length; el.textContent = this.frames[this.fi]; },
-        update(dt, mx, my) {
-          // gentle wander
-          this.x += this.vx * dt; this.y += this.vy * dt;
-          this.bob += this.bobSpeed * dt;
-          // soft cursor repulsion
-          const dx = this.x - mx, dy = this.y - my;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < 26000 && d2 > 1) {
-            const f = (1 - d2 / 26000) * 0.9;
-            const d = Math.sqrt(d2);
-            this.vx += (dx / d) * f * 0.12;
-            this.vy += (dy / d) * f * 0.12;
-          }
-          // damping + drift cap
-          this.vx *= 0.985; this.vy *= 0.985;
-          this.vx += rand(-0.01, 0.01); this.vy += rand(-0.01, 0.01);
-          this.vx = Math.max(-0.7, Math.min(0.7, this.vx));
-          this.vy = Math.max(-0.7, Math.min(0.7, this.vy));
-          // wrap softly at edges
-          const m = 80;
-          if (this.x < -m) this.x = W() + m; if (this.x > W() + m) this.x = -m;
-          if (this.y < -m) this.y = H() + m; if (this.y > H() + m) this.y = -m;
-          el.style.transform =
-            `translate(${this.x}px, ${this.y + Math.sin(this.bob) * this.bobAmt}px)`;
-        },
-      };
-      el.textContent = c.frames[0];
-      return c;
-    }
-
-    // ---------- SPIRIT: drifts slowly, fades + flees when cursor near ----------
-    function spawnSpirit() {
-      const el = makeEl("c-spirit");
-      const c = {
-        el, type: "spirit",
-        x: rand(0.1, 0.9) * W(), y: rand(0.1, 0.9) * H(),
-        vx: rand(-0.12, 0.12), vy: rand(-0.16, -0.04),
-        op: rand(0.32, 0.55), targetOp: 0.45,
-        frames: A.SPIRIT_FRAMES, fi: 0,
-        cycle() { this.fi = (this.fi + 1) % this.frames.length; el.textContent = this.frames[this.fi]; },
-        update(dt, mx, my) {
-          this.x += this.vx * dt; this.y += this.vy * dt;
-          const dx = this.x - mx, dy = this.y - my;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < 34000) {
-            this.targetOp = 0.08;
-            const d = Math.sqrt(d2) || 1;
-            this.vx += (dx / d) * 0.16; this.vy += (dy / d) * 0.16;
-          } else {
-            this.targetOp = 0.45;
-          }
-          this.vx *= 0.97; this.vy *= 0.97;
-          this.vy -= 0.004 * dt; // gentle upward float
-          this.vx = Math.max(-0.9, Math.min(0.9, this.vx));
-          this.vy = Math.max(-0.9, Math.min(0.9, this.vy));
-          this.op += (this.targetOp - this.op) * 0.06;
-          const m = 90;
-          if (this.x < -m) this.x = W() + m; if (this.x > W() + m) this.x = -m;
-          if (this.y < -m) { this.y = H() + m; this.vy = rand(-0.16, -0.06); }
-          el.style.opacity = this.op.toFixed(3);
-          el.style.transform = `translate(${this.x}px, ${this.y}px)`;
-        },
-      };
-      el.textContent = c.frames[0];
-      return c;
-    }
-
-    // ---------- CAT: anchored near edges, sleeps + blinks ----------
-    function spawnCat() {
-      const el = makeEl("c-cat");
-      const sleepy = Math.random() > 0.5;
-      const corner = Math.floor(rand(0, 4));
-      const px = (corner % 2 === 0) ? rand(0.02, 0.12) : rand(0.78, 0.92);
-      const py = (corner < 2) ? rand(0.16, 0.42) : rand(0.58, 0.88);
-      const c = {
-        el, type: "cat",
-        x: px * W(), y: py * H(),
-        frames: sleepy ? A.CAT_SLEEP : A.CAT_FRAMES, fi: 0,
-        blinkBias: sleepy ? 1 : Math.random(),
-        update() {
-          el.style.transform = `translate(${this.x}px, ${this.y}px)`;
-        },
-        cycle() {
-          if (this.frames === A.CAT_SLEEP) {
-            this.fi = (this.fi + 1) % this.frames.length;
-          } else {
-            // mostly open eyes, occasional blink
-            this.fi = Math.random() < 0.28 ? 1 : 0;
-            if (Math.random() < 0.08) this.fi = 3; // happy ^.^
-          }
-          el.textContent = this.frames[this.fi];
-        },
-      };
-      el.textContent = c.frames[0];
-      c.update();
-      return c;
-    }
-
-    // ---------- distribute population ----------
-    const recipe = [];
+    /* Assign types: roughly 35% cat, 35% blob, 30% spirit */
+    const types = [];
     for (let i = 0; i < count; i++) {
       const r = i / count;
-      if (r < 0.42) recipe.push("blob");
-      else if (r < 0.74) recipe.push("spirit");
-      else recipe.push("cat");
+      types.push(r < 0.35 ? "cat" : r < 0.70 ? "blob" : "spirit");
     }
-    recipe.forEach((t) => {
-      creatures.push(t === "blob" ? spawnBlob() : t === "spirit" ? spawnSpirit() : spawnCat());
+
+    const homes = buildHomePositions(count, W, H);
+
+    const creatures = homes.map(({ hx, hy }, i) => {
+      const type = types[i];
+      const el = document.createElement("pre");
+      el.className = "creature c-" + type;
+      layer.appendChild(el);
+
+      const variants = CREATURE_ART[type];
+      const frames = pick(variants);
+
+      return {
+        el,
+        type,
+        frames,
+        fi: 0,
+        hx, hy,
+        /* Each creature has its own independent sine parameters so
+           no two creatures move in sync and paths never coincide */
+        ax: rand(14, 30),           // x orbit radius (px)
+        ay: rand(10, 22),           // y orbit radius (px)
+        fx: rand(0.00018, 0.00034), // x frequency
+        fy: rand(0.00022, 0.00038), // y frequency
+        px: rand(0, 6.28),          // x phase
+        py: rand(0, 6.28),          // y phase
+        baseOp: type === "spirit" ? rand(0.28, 0.42) : rand(0.32, 0.48),
+        op: 0,
+        targetOp: 0,
+      };
     });
 
-    // ---------- cursor state ----------
+    /* Initialise text */
+    creatures.forEach(c => { c.el.textContent = c.frames[0]; });
+
+    /* ---- cursor ---- */
     let mx = -9999, my = -9999, lastTrail = 0;
+    const A = window.ASCII;
+
     const onMove = (e) => {
       mx = e.clientX; my = e.clientY;
-      // paw-print / sparkle trail
       const now = performance.now();
-      if (trail && now - lastTrail > 90 && Math.random() < 0.8) {
+      if (trail && now - lastTrail > 110 && Math.random() < 0.65) {
         lastTrail = now;
         const p = document.createElement("span");
         p.className = "trail-bit";
-        p.textContent = pick(["·", "✦", "˖", "✧", A.TINY.paw]);
-        p.style.left = mx + rand(-6, 6) + "px";
-        p.style.top = my + rand(-6, 6) + "px";
-        p.style.fontSize = rand(9, 14) + "px";
+        p.textContent = pick(["·", "✦", "˖", "✧"]);
+        p.style.left = mx + rand(-5, 5) + "px";
+        p.style.top  = my + rand(-5, 5) + "px";
+        p.style.fontSize = rand(9, 13) + "px";
         trail.appendChild(p);
         setTimeout(() => p.remove(), 1100);
       }
     };
     window.addEventListener("pointermove", onMove);
 
-    // ---------- loops ----------
-    let raf, last = performance.now();
+    /* ---- main loop: pure sine-wave positions, no velocity ---- */
+    let raf;
     const tick = (t) => {
-      const dt = Math.min(3, (t - last) / 16.67); last = t;
-      for (const c of creatures) c.update(dt, mx, my);
+      creatures.forEach(c => {
+        /* Sine-wave orbit around home — smooth, bounded, never drifts */
+        const x = c.hx + Math.sin(t * c.fx + c.px) * c.ax;
+        const y = c.hy + Math.cos(t * c.fy + c.py) * c.ay;
+        c.el.style.transform = `translate(${x}px, ${y}px)`;
+
+        /* Spirits fade when cursor is near */
+        const dx = x - mx, dy = y - my;
+        const near = dx * dx + dy * dy < 28000;
+        c.targetOp = (c.type === "spirit" && near) ? 0.06 : c.baseOp;
+        c.op += (c.targetOp - c.op) * 0.055;
+        c.el.style.opacity = c.op.toFixed(3);
+      });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+
+    /* ---- frame cycling: gentle blink, not every creature every tick ---- */
     const frameTimer = setInterval(() => {
-      for (const c of creatures) if (Math.random() < 0.7) c.cycle();
-    }, 720);
+      creatures.forEach(c => {
+        if (Math.random() > 0.35) return; // most skip this tick
+        c.fi = (c.fi + 1) % c.frames.length;
+        c.el.textContent = c.frames[c.fi];
+      });
+    }, 900);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -191,7 +167,7 @@ function CreatureLayer({ density }) {
   return (
     <React.Fragment>
       <div className="creature-layer" ref={layerRef}></div>
-      <div className="trail-layer" ref={trailRef}></div>
+      <div className="trail-layer"   ref={trailRef}></div>
     </React.Fragment>
   );
 }
