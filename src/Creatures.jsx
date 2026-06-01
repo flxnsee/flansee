@@ -1,8 +1,8 @@
 /* ============================================================
-   creatures.jsx — the living ASCII ecosystem  (v2 — clean)
+   Creatures.jsx — the living ASCII ecosystem  (v2 — clean)
    Single-line symbols + sine-wave orbits = smooth, non-overlapping.
-   exports: window.CreatureLayer
    ============================================================ */
+import React from "react";
 
 /* ---- clean single-line creature art ---- */
 const CREATURE_ART = {
@@ -32,7 +32,6 @@ function buildHomePositions(n, W, H, margin = 0.12) {
       if (cells.length < n) cells.push([c, r, cols, rows]);
     }
   }
-  // shuffle so type assignment doesn't cluster by position
   for (let i = cells.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [cells[i], cells[j]] = [cells[j], cells[i]];
@@ -41,7 +40,7 @@ function buildHomePositions(n, W, H, margin = 0.12) {
   return cells.map(([c, r, nc, nr]) => {
     const cellW = (1 - 2 * mx) / nc;
     const cellH = (1 - 2 * my) / nr;
-    const jx = (Math.random() * 0.6 + 0.2) * cellW; // jitter within 20–80% of cell
+    const jx = (Math.random() * 0.6 + 0.2) * cellW;
     const jy = (Math.random() * 0.6 + 0.2) * cellH;
     return {
       hx: (mx + c * cellW + jx) * W,
@@ -50,7 +49,7 @@ function buildHomePositions(n, W, H, margin = 0.12) {
   });
 }
 
-function CreatureLayer({ density }) {
+export function CreatureLayer({ density }) {
   const layerRef = React.useRef(null);
   const trailRef = React.useRef(null);
   const count = density === "subtle" ? 5 : density === "lively" ? 8 : 12;
@@ -66,7 +65,6 @@ function CreatureLayer({ density }) {
     const rand = (a, b) => a + Math.random() * (b - a);
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    /* Assign types: roughly 35% cat, 35% blob, 30% spirit */
     const types = [];
     for (let i = 0; i < count; i++) {
       const r = i / count;
@@ -85,30 +83,17 @@ function CreatureLayer({ density }) {
       const frames = pick(variants);
 
       return {
-        el,
-        type,
-        frames,
-        fi: 0,
-        hx, hy,
-        /* Each creature has its own independent sine parameters so
-           no two creatures move in sync and paths never coincide */
-        ax: rand(14, 30),           // x orbit radius (px)
-        ay: rand(10, 22),           // y orbit radius (px)
-        fx: rand(0.00018, 0.00034), // x frequency
-        fy: rand(0.00022, 0.00038), // y frequency
-        px: rand(0, 6.28),          // x phase
-        py: rand(0, 6.28),          // y phase
-        op: 1,
-        targetOp: 1,
+        el, type, frames, fi: 0, hx, hy,
+        ax: rand(14, 30), ay: rand(10, 22),
+        fx: rand(0.00018, 0.00034), fy: rand(0.00022, 0.00038),
+        px: rand(0, 6.28), py: rand(0, 6.28),
+        op: 1, targetOp: 1,
       };
     });
 
-    /* Initialise text */
     creatures.forEach(c => { c.el.textContent = c.frames[0]; });
 
-    /* ---- cursor ---- */
     let mx = -9999, my = -9999, lastTrail = 0;
-    const A = window.ASCII;
 
     const onMove = (e) => {
       mx = e.clientX; my = e.clientY;
@@ -127,16 +112,13 @@ function CreatureLayer({ density }) {
     };
     window.addEventListener("pointermove", onMove);
 
-    /* ---- main loop: pure sine-wave positions, no velocity ---- */
     let raf;
     const tick = (t) => {
       creatures.forEach(c => {
-        /* Sine-wave orbit around home — smooth, bounded, never drifts */
         const x = c.hx + Math.sin(t * c.fx + c.px) * c.ax;
         const y = c.hy + Math.cos(t * c.fy + c.py) * c.ay;
         c.el.style.transform = `translate(${x}px, ${y}px)`;
 
-        /* Spirits fade when cursor is near */
         if (c.type === "spirit") {
           const dx = x - mx, dy = y - my;
           const near = dx * dx + dy * dy < 28000;
@@ -149,10 +131,9 @@ function CreatureLayer({ density }) {
     };
     raf = requestAnimationFrame(tick);
 
-    /* ---- frame cycling: gentle blink, not every creature every tick ---- */
     const frameTimer = setInterval(() => {
       creatures.forEach(c => {
-        if (Math.random() > 0.35) return; // most skip this tick
+        if (Math.random() > 0.35) return;
         c.fi = (c.fi + 1) % c.frames.length;
         c.el.textContent = c.frames[c.fi];
       });
@@ -173,4 +154,4 @@ function CreatureLayer({ density }) {
   );
 }
 
-window.CreatureLayer = CreatureLayer;
+export default CreatureLayer;

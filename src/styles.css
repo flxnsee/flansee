@@ -680,16 +680,16 @@ body.no-light-cursor .you-light, body.no-light-cursor .you-core { display: none;
 .fnode-glow {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: 150px; height: 150px; border-radius: 50%; pointer-events: none; z-index: -1;
-  background: radial-gradient(circle, rgba(var(--a-glow), .22), transparent 66%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--node-a, #d8884f) 30%, transparent), transparent 66%);
   opacity: calc(var(--reveal) * .9);
   transition: opacity .25s var(--ease-soft);
 }
 .fnode-art {
   font-family: var(--mono); white-space: pre; line-height: 1.12;
   font-size: 13px; text-align: center; margin: 0;
-  color: color-mix(in oklab, var(--ink-faint), var(--a1) calc(var(--reveal) * 100%));
+  color: color-mix(in oklab, var(--ink-faint), var(--node-a, #d8884f) calc(var(--reveal) * 100%));
   opacity: calc(.5 + var(--reveal) * .5);
-  text-shadow: 0 0 calc(var(--reveal) * 22px) rgba(var(--a-glow), calc(var(--reveal) * .6));
+  text-shadow: 0 0 calc(var(--reveal) * 22px) color-mix(in srgb, var(--node-a, #d8884f) calc(var(--reveal) * 60%), transparent);
   transition: opacity .3s var(--ease-soft);
 }
 .fnode.bonded .fnode-art { opacity: calc(.6 + var(--reveal) * .4); }
@@ -709,8 +709,19 @@ body.no-light-cursor .you-light, body.no-light-cursor .you-core { display: none;
 .fnode-ring { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-90deg);
   pointer-events: none; overflow: visible; }
 .fnode-ring .ring-track { fill: none; stroke: var(--line); stroke-width: 1.5; opacity: calc(var(--reveal) * .5); }
-.fnode-ring .ring-fill  { fill: none; stroke: var(--a1); stroke-width: 2.5; stroke-linecap: round;
-  filter: drop-shadow(0 0 6px rgba(var(--a-glow), .6)); transition: stroke-dashoffset .08s linear; }
+.fnode-ring .ring-fill  { fill: none; stroke: var(--node-a, #d8884f); stroke-width: 2.5; stroke-linecap: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--node-a, #d8884f) 60%, transparent)); transition: stroke-dashoffset .08s linear; }
+
+/* typed "creature language" greeting that surfaces when a lifeform wakes */
+.fnode-greet {
+  margin-top: 10px; max-width: 180px; text-align: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .01em;
+  color: color-mix(in srgb, var(--node-a, #d8884f) 78%, var(--ink));
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  opacity: 1; transition: opacity .7s var(--ease-soft);
+  pointer-events: none; min-height: 14px;
+}
+.fnode-greet.gone { opacity: 0; }
 
 /* first-touch whisper that teaches the gesture, then fades forever */
 .field-hint {
@@ -805,4 +816,119 @@ body.no-light-cursor .you-light, body.no-light-cursor .you-core { display: none;
 @media (max-width: 760px) {
   .interior-inner { padding: 92px 8vw 90px; }
   .field-heart .heart-name { font-size: 34px; }
+}
+
+/* ============================================================
+   ▓▓▓  TOUCH / MOBILE  ▓▓▓  (Phase 4)
+   No light-wisp on touch — names read by default, bigger tap
+   targets, tap-to-enter. The habitat still feels alive.
+   ============================================================ */
+.field.touch { cursor: auto; }
+.field.touch .fnode { cursor: pointer; }
+/* names + creatures are legible without hovering a light over them */
+.field.touch .fnode-name {
+  opacity: 1; transform: none;
+}
+.field.touch .fnode-art {
+  opacity: .9;
+  color: color-mix(in oklab, var(--ink-faint), var(--node-a, #d8884f) 55%);
+}
+.field.touch .fnode-glow { opacity: .35; }
+/* generous, finger-friendly hit area around each lifeform */
+.field.touch .fnode-core {
+  min-width: 72px; min-height: 72px;
+}
+.field.touch .fnode::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 96px; height: 96px; transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+/* the field on small screens, regardless of pointer type */
+@media (max-width: 640px) {
+  .field-heart .heart-art { display: none; }
+  .field-heart .heart-name { font-size: clamp(28px, 9vw, 40px); }
+  .field-heart .heart-sub { font-size: 10px; letter-spacing: .08em; }
+  .fnode-art { font-size: 12px; }
+  .fnode-name { font-size: 12px; }
+  .field-hint { font-size: 11.5px; padding: 10px 16px; width: min(86vw, 420px); bottom: 6vh; }
+  .call-dot { right: 14px; bottom: 14px; }
+}
+
+/* ============================================================
+   ▓▓▓  INTERIOR CRAFT  ▓▓▓  (Phase 3)
+   Each room wears the colour of the lifeform you entered.
+   Overriding the accent vars on .interior re-themes every
+   descendant (headings, links, chips, bars, timeline, glow)
+   in one move — so the room feels like *its* world.
+   ============================================================ */
+.interior {
+  --a1: var(--a-interior, #d8884f);
+  --a2: color-mix(in srgb, var(--a-interior, #d8884f) 70%, #f0d9b0);
+  --a3: color-mix(in srgb, var(--a-interior, #d8884f) 82%, #2b2823 14%);
+  --a-glow: var(--a-interior-rgb, 216, 136, 79);
+}
+/* a richer, species-tinted atmosphere with a soft vignette for depth */
+.interior {
+  background:
+    radial-gradient(1200px 820px at 78% -12%, rgba(var(--a-glow), .16), transparent 60%),
+    radial-gradient(900px 760px at 4% 112%, rgba(var(--a-glow), .08), transparent 62%),
+    radial-gradient(135% 120% at 50% 46%, transparent 56%, rgba(78,60,34,.05) 100%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+}
+
+/* editorial scale: an oversized display header per room */
+.interior .env-tag {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--a-interior, #d8884f) 60%, var(--ink-faint));
+  margin-bottom: 6px; opacity: .9;
+}
+.interior .env-tag::after { background: color-mix(in srgb, var(--a-interior, #d8884f) 30%, var(--line)); }
+.env-display {
+  font-family: var(--sans); font-weight: 700; letter-spacing: -.045em;
+  font-size: clamp(40px, 7.2vw, 96px); line-height: .92;
+  margin: 2px 0 34px; color: var(--ink);
+  position: relative; text-wrap: balance;
+}
+.env-display::before {
+  content: ""; display: inline-block; vertical-align: middle;
+  width: clamp(22px, 3vw, 40px); height: clamp(22px, 3vw, 40px);
+  margin: 0 18px 10px 0; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%,
+    color-mix(in srgb, var(--a-interior, #d8884f) 35%, #fff),
+    var(--a-interior, #d8884f) 78%);
+  box-shadow: 0 0 0 6px rgba(var(--a-glow), .12), 0 6px 24px rgba(var(--a-glow), .4);
+  animation: breathe 4.4s var(--ease-soft) infinite;
+}
+
+/* crafted, species-tinted surfaces */
+.interior .panel {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--a-interior, #d8884f) 5%, rgba(255,253,249,.86)),
+    rgba(252,249,243,.66));
+  border-color: color-mix(in srgb, var(--a-interior, #d8884f) 20%, var(--line));
+}
+.interior .panel.statcard { border-left: 2px solid color-mix(in srgb, var(--a-interior, #d8884f) 55%, var(--line)); }
+.interior .chip:hover { background: color-mix(in srgb, var(--a-interior, #d8884f) 10%, var(--surface)); }
+.interior .specimen:hover { border-color: color-mix(in srgb, var(--a-interior, #d8884f) 55%, var(--line)); }
+
+/* staggered, species-aware bloom-in (reuses the .reveal/.in system) */
+.interior .reveal { opacity: 0; transform: translateY(18px); }
+.interior .reveal.in { animation: interiorRise .72s var(--ease-soft) forwards; }
+@keyframes interiorRise { to { opacity: 1; transform: none; } }
+.interior .reveal.d1 { animation-delay: .05s; }
+.interior .reveal.d2 { animation-delay: .12s; }
+.interior .reveal.d3 { animation-delay: .19s; }
+.interior .reveal.d4 { animation-delay: .26s; }
+
+/* the perched header + companion echo the room's colour */
+.interior-head .ih-here b { color: var(--a-interior, var(--a3)); }
+.interior-companion {
+  color: var(--a-interior, var(--a1));
+  text-shadow: 0 0 16px color-mix(in srgb, var(--a-interior, #d8884f) 45%, transparent);
+}
+
+@media (max-width: 760px) {
+  .env-display { font-size: clamp(34px, 11vw, 56px); margin-bottom: 24px; }
+  .env-display::before { width: 20px; height: 20px; margin-right: 12px; }
 }

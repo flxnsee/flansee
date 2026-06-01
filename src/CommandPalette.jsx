@@ -1,9 +1,9 @@
 /* ============================================================
-   palette.jsx — tasteful ⌘K command palette
-   exports: window.CommandPalette
+   CommandPalette.jsx — tasteful ⌘K command palette
    ============================================================ */
+import React from "react";
 
-function CommandPalette({ open, onClose, commands }) {
+export function CommandPalette({ open, onClose, commands }) {
   const [q, setQ] = React.useState("");
   const [sel, setSel] = React.useState(0);
   const inputRef = React.useRef(null);
@@ -34,7 +34,6 @@ function CommandPalette({ open, onClose, commands }) {
 
   if (!open) return null;
 
-  // group by section
   const groups = {};
   filtered.forEach((c, i) => { (groups[c.group || "Actions"] = groups[c.group || "Actions"] || []).push({ ...c, _i: i }); });
 
@@ -85,4 +84,4 @@ function CommandPalette({ open, onClose, commands }) {
   );
 }
 
-window.CommandPalette = CommandPalette;
+export default CommandPalette;

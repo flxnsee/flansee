@@ -1,7 +1,7 @@
 /* ============================================================
-   boot.jsx — animated boot-up sequence
-   exports: window.BootSequence
+   Boot.jsx — animated boot-up sequence
    ============================================================ */
+import React from "react";
 
 const BOOT_LINES = [
   { t: "HABITAT OS  ·  v2.6  ·  warm kernel", cls: "pre", d: 320 },
@@ -16,7 +16,7 @@ const BOOT_LINES = [
   { t: "welcome to my digital habitat.", cls: "pre", d: 500 },
 ];
 
-function BootSequence({ onDone, skippable = true }) {
+export function BootSequence({ onDone, skippable = true }) {
   const [lines, setLines] = React.useState([]);
   const [typed, setTyped] = React.useState("");
   const [progress, setProgress] = React.useState(0);
@@ -101,4 +101,4 @@ function BootSequence({ onDone, skippable = true }) {
   );
 }
 
-window.BootSequence = BootSequence;
+export default BootSequence;

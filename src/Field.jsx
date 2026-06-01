@@ -1,21 +1,27 @@
 /* ============================================================
-   field.jsx — RESONANCE
+   Field.jsx — RESONANCE
    The signature navigation. A living field of ASCII lifeforms
    that answer your light. Approach → they wake. Linger → they bloom.
-   exports: window.HabitatField, window.NODES
+   Each lifeform is its own species: colour, rhythm, voice, note.
    ============================================================ */
+import React from "react";
+import { ASCII } from "./ascii.js";
 
 /* Each lifeform = one section. Positions are fractions of the
-   viewport from the centre, so the constellation scales naturally. */
+   viewport from the centre, so the constellation scales naturally.
+   tint  = species identity colour
+   breath= frame-swap cadence (ms) — each creature breathes differently
+   note  = audio pitch (Hz, C-major pentatonic) for the wake tone
+   greet = tiny "creature language" line, typed when it wakes */
 const NODES = [
-  { id: "inhabitant", name: "inhabitant", sub: "who lives here",    fx: -0.38, fy: -0.14, sp: 0.00042, amp: 13, ph: 0.0 },
-  { id: "specimens",  name: "specimens",  sub: "the works",         fx:  0.36, fy: -0.20, sp: 0.00035, amp: 16, ph: 1.7 },
-  { id: "instincts",  name: "instincts",  sub: "what it can do",    fx: -0.10, fy:  0.38, sp: 0.00048, amp: 12, ph: 3.1 },
-  { id: "migrations", name: "migrations", sub: "where it wandered", fx:  0.34, fy:  0.26, sp: 0.00030, amp: 18, ph: 4.6 },
-  { id: "signal",     name: "signal",     sub: "say hello",         fx:  0.04, fy: -0.38, sp: 0.00052, amp: 11, ph: 5.5 },
-  { id: "echo",       name: "echo",       sub: "·",                 fx: -0.44, fy:  0.40, sp: 0.00038, amp: 15, ph: 2.3, hidden: true },
+  { id: "inhabitant", name: "inhabitant", sub: "who lives here",    fx: -0.38, fy: -0.14, sp: 0.00042, amp: 13, ph: 0.0, tint: "#d8884f", breath: 720, note: 261.63 },
+  { id: "specimens",  name: "specimens",  sub: "the works",         fx:  0.36, fy: -0.20, sp: 0.00035, amp: 16, ph: 1.7, tint: "#5fa3b3", breath: 600, note: 293.66 },
+  { id: "instincts",  name: "instincts",  sub: "what it can do",    fx: -0.10, fy:  0.38, sp: 0.00048, amp: 12, ph: 3.1, tint: "#7f9f6a", breath: 520, note: 329.63 },
+  { id: "migrations", name: "migrations", sub: "where it wandered", fx:  0.34, fy:  0.26, sp: 0.00030, amp: 18, ph: 4.6, tint: "#6f9fc0", breath: 820, note: 392.00 },
+  { id: "signal",     name: "signal",     sub: "say hello",         fx:  0.04, fy: -0.38, sp: 0.00052, amp: 11, ph: 5.5, tint: "#e0a662", breath: 560, note: 440.00 },
+  { id: "echo",       name: "echo",       sub: "·",                 fx: -0.44, fy:  0.40, sp: 0.00038, amp: 15, ph: 2.3, tint: "#a98fc7", breath: 900, note: 523.25, hidden: true },
 ];
-window.NODES = NODES;
+export { NODES };
 
 const REVEAL_OUT = 280;   // px: lifeform starts to notice your light
 const REVEAL_IN  = 96;    // px: fully awake
@@ -23,8 +29,9 @@ const COMMUNE    = 116;   // px: resonance begins to build
 const HOLD_MS    = 920;   // time near to fully bloom
 const PARALLAX   = 0.045; // world lean
 const MAX_PAN    = 460;   // drag clamp
+const WAKE_AT    = 0.62;  // reveal threshold that "wakes" a lifeform
 
-function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, paused }) {
+export function HabitatField({ visited, onEnter, onWake, hintDone, onHintDone, lightCursor, paused, touch }) {
   const fieldRef   = React.useRef(null);
   const heartRef   = React.useRef(null);
   const lightRef   = React.useRef(null);
@@ -33,13 +40,14 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
   const nodeRefs   = React.useRef([]);
   const innerRefs  = React.useRef([]);
   const artRefs    = React.useRef([]);
+  const greetRefs  = React.useRef([]);
   const ringFills  = React.useRef([]);
   const ghostLines = React.useRef([]);
   const liveLines  = React.useRef([]);
   const pips       = React.useRef([]);
 
   // live, mutable runtime (kept out of React state for 60fps)
-  const rt = React.useRef(NODES.map(() => ({ res: 0, cool: false, frame: 0, sx: 0, sy: 0 })));
+  const rt = React.useRef(NODES.map(() => ({ res: 0, cool: false, frame: 0, sx: 0, sy: 0, nextFrame: 0, greeted: false, woke: false, greetTimers: [] })));
   const mouse = React.useRef({ x: -9999, y: -9999 });
   const light = React.useRef({ x: -9999, y: -9999 });
   const cam = React.useRef({ x: 0, y: 0 });
@@ -48,15 +56,48 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
   visitedRef.current = visited;
   const pausedRef = React.useRef(paused);
   pausedRef.current = paused;
-  const enteredOnce = React.useRef(false);
+  const onWakeRef = React.useRef(onWake);
+  onWakeRef.current = onWake;
+  const touchRef = React.useRef(touch);
+  touchRef.current = touch;
 
   const unlocked = NODES.filter(n => !n.hidden).every(n => visited[n.id]);
   const unlockedRef = React.useRef(unlocked);
   unlockedRef.current = unlocked;
 
-  const A = window.ASCII;
+  const A = ASCII;
   const RING_R = 50;
   const RING_C = 2 * Math.PI * RING_R;
+
+  // ---------- colour the constellation threads by species ----------
+  React.useEffect(() => {
+    NODES.forEach((n, i) => {
+      if (liveLines.current[i]) liveLines.current[i].style.stroke = n.tint;
+      if (pips.current[i]) pips.current[i].style.fill = n.tint;
+    });
+  }, []);
+
+  // ---------- typed "creature language" greeting ----------
+  function typeGreet(i) {
+    const el = greetRefs.current[i];
+    const r = rt.current[i];
+    if (!el || r.greeted) return;
+    r.greeted = true;
+    const text = A.GREETINGS[NODES[i].id] || "";
+    el.classList.remove("gone");
+    el.textContent = "";
+    let ci = 0;
+    const typer = setInterval(() => {
+      ci++;
+      el.textContent = text.slice(0, ci);
+      if (ci >= text.length) {
+        clearInterval(typer);
+        const fade = setTimeout(() => el.classList.add("gone"), 1900);
+        r.greetTimers.push(fade);
+      }
+    }, 34);
+    r.greetTimers.push(typer);
+  }
 
   // ---------- pointer ----------
   React.useEffect(() => {
@@ -74,7 +115,6 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
     }
     function onDown(e) {
       if (pausedRef.current) return;
-      // only pan from empty space (not from a lifeform)
       if (e.target.closest && e.target.closest(".fnode")) return;
       drag.current = { x: e.clientX, y: e.clientY, cx: cam.current.x, cy: cam.current.y, moved: false };
     }
@@ -90,22 +130,6 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
     };
-  }, []);
-
-  // ---------- frame swap (creatures breathe) ----------
-  React.useEffect(() => {
-    const t = setInterval(() => {
-      NODES.forEach((n, i) => {
-        const r = rt.current[i];
-        const frames = A.NODE_ART[n.id];
-        if (!frames) return;
-        // when awake, lean toward the friendly frame
-        if (r.reveal > 0.55 && frames.length > 2 && Math.random() < 0.5) r.frame = frames.length - 1;
-        else r.frame = (r.frame + 1) % frames.length;
-        if (artRefs.current[i]) artRefs.current[i].textContent = frames[r.frame];
-      });
-    }, 680);
-    return () => clearInterval(t);
   }, []);
 
   // ---------- main loop ----------
@@ -151,8 +175,21 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
           x: Math.sin(t * n.sp + n.ph) * n.amp,
           y: Math.cos(t * n.sp * 0.8 + n.ph) * n.amp * 0.7,
         };
-        const baseX = cx + n.fx * W + offX + drift.x;
-        const baseY = cy + n.fy * H + offY + drift.y;
+        // tighten the constellation on small / touch screens so it fits
+        const spread = touchRef.current ? 0.82 : (W < 720 ? 0.88 : 1);
+        const baseX = cx + n.fx * W * spread + offX + drift.x;
+        const baseY = cy + n.fy * H * spread + offY + drift.y;
+
+        // per-node breathing — each creature swaps frames at its own cadence
+        if (t >= r.nextFrame) {
+          const frames = A.NODE_ART[n.id];
+          if (frames) {
+            if (r.reveal > 0.55 && frames.length > 2 && Math.random() < 0.5) r.frame = frames.length - 1;
+            else r.frame = (r.frame + 1) % frames.length;
+            if (artRefs.current[i]) artRefs.current[i].textContent = frames[r.frame];
+          }
+          r.nextFrame = t + n.breath + (Math.random() * 120 - 60);
+        }
 
         // distance from your light to the lifeform
         const dx = (m.x > -5000 ? m.x : -9999) - baseX;
@@ -174,6 +211,15 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
         if (inner) inner.style.transform = `translate(-50%, -50%) scale(${scale})`;
         node.style.setProperty("--reveal", reveal.toFixed(3));
         node.classList.toggle("bonded", !!visitedRef.current[n.id]);
+
+        // wake: greeting + per-species note, once
+        if (reveal > WAKE_AT && !r.woke && !pausedRef.current) {
+          r.woke = true;
+          typeGreet(i);
+          if (onWakeRef.current) onWakeRef.current(n.note);
+        } else if (reveal < 0.3) {
+          r.woke = false; // can wake again after drifting away
+        }
 
         // resonance
         if (!pausedRef.current && dist < COMMUNE && !r.cool) {
@@ -219,7 +265,10 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      rt.current.forEach(r => r.greetTimers.forEach(clearTimeout));
+    };
   }, []); // eslint-disable-line
 
   function setLine(el, x1, y1, x2, y2) {
@@ -244,7 +293,7 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
   }
 
   return (
-    <div className={"field" + (lightCursor ? "" : " no-light")} ref={fieldRef}>
+    <div className={"field" + (lightCursor ? "" : " no-light") + (touch ? " touch" : "")} ref={fieldRef}>
       <svg className="field-threads" ref={threadsRef}>
         {NODES.map((n, i) => (
           <g key={n.id}>
@@ -270,6 +319,7 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
         <div
           className={"fnode" + (visited[n.id] ? " bonded" : "")}
           key={n.id}
+          style={{ "--node-a": n.tint }}
           ref={el => (nodeRefs.current[i] = el)}
           onClick={(e) => onNodeClick(i, e)}
         >
@@ -290,6 +340,7 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
               {n.id === "echo" ? "echo" : n.name}
               <span className="nsub">{n.id === "echo" ? "you found it" : n.sub}</span>
             </div>
+            <div className="fnode-greet gone" ref={el => (greetRefs.current[i] = el)}></div>
           </div>
         </div>
       ))}
@@ -299,7 +350,9 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
 
       {!hintDone && (
         <div className="field-hint">
-          everything here is alive — bring your light <b>close</b> to what stirs, and <b>linger</b> to enter
+          {touch
+            ? <>the habitat is alive — <b>tap</b> a creature that stirs to enter its world</>
+            : <>everything here is alive — bring your light <b>close</b> to what stirs, and <b>linger</b> to enter</>}
         </div>
       )}
     </div>
@@ -308,4 +361,4 @@ function HabitatField({ visited, onEnter, hintDone, onHintDone, lightCursor, pau
 
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-window.HabitatField = HabitatField;
+export default HabitatField;

@@ -1,8 +1,18 @@
 /* ============================================================
-   app.jsx — HABITAT OS orchestrator
+   App.jsx — HABITAT OS orchestrator
    boot  →  the field (RESONANCE nav)  ⇄  a lifeform's interior
    ============================================================ */
-const { useState, useEffect, useRef, useCallback } = React;
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ASCII } from "./ascii.js";
+import { CreatureLayer } from "./Creatures.jsx";
+import { BootSequence } from "./Boot.jsx";
+import { CommandPalette } from "./CommandPalette.jsx";
+import { ENV_BY_ID } from "./sections.jsx";
+import { HabitatField, NODES } from "./Field.jsx";
+import { createAudioEngine } from "./audio.js";
+import {
+  useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakToggle, TweakButton,
+} from "./tweaks.jsx";
 
 const PALETTES = {
   amber: { a1: "#d8884f", a2: "#e0a662", a3: "#c4763f", glow: "216, 136, 79",  label: "amber" },
@@ -11,11 +21,25 @@ const PALETTES = {
   mono:  { a1: "#8a8275", a2: "#a39a89", a3: "#6f685b", glow: "138, 130, 117", label: "mono"  },
 };
 
+const NODE_TINT = Object.fromEntries(NODES.map(n => [n.id, n.tint]));
+const NODE_NOTE = Object.fromEntries(NODES.map(n => [n.id, n.note]));
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.replace(/./g, c => c + c) : h, 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+const NODE_GLOW = Object.fromEntries(NODES.map(n => [n.id, hexToRgb(n.tint)]));
+
+function initialMuted() {
+  try { return localStorage.getItem("habitat-muted") === "1"; } catch (e) { return false; }
+}
+
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "palette": "amber",
   "density": "lively",
   "grain": true,
-  "lightCursor": true
+  "lightCursor": true,
+  "muted": false
 }/*EDITMODE-END*/;
 
 const NAMES = { inhabitant: "inhabitant", specimens: "specimens", instincts: "instincts",
@@ -26,8 +50,11 @@ function loadVisited() {
   catch (e) { return {}; }
 }
 
-function App() {
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+const IS_TOUCH = typeof window !== "undefined"
+  && window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
+export default function App() {
+  const [t, setTweak] = useTweaks({ ...TWEAK_DEFAULTS, muted: initialMuted() });
   const [booted, setBooted] = useState(false);
   const [mode, setMode] = useState(null);          // null = field, else node id (interior)
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
@@ -39,10 +66,27 @@ function App() {
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const closeTimer = useRef(null);
+  const audioRef = useRef(null);
 
   const [showBoot, setShowBoot] = useState(() => {
     try { return sessionStorage.getItem("habitat-booted") !== "1"; } catch (e) { return true; }
   });
+
+  // ---- audio engine (created lazily, resumed on first gesture) ----
+  if (!audioRef.current) audioRef.current = createAudioEngine();
+  useEffect(() => {
+    audioRef.current.setMuted(t.muted);
+    try { localStorage.setItem("habitat-muted", t.muted ? "1" : "0"); } catch (e) {}
+  }, [t.muted]);
+  useEffect(() => {
+    const go = () => { if (!t.muted) audioRef.current.resume(); };
+    window.addEventListener("pointerdown", go, { once: true });
+    window.addEventListener("keydown", go, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", go);
+      window.removeEventListener("keydown", go);
+    };
+  }, [t.muted]);
 
   // ---- palette + chrome ----
   useEffect(() => {
@@ -52,7 +96,7 @@ function App() {
     r.setProperty("--a3", p.a3); r.setProperty("--a-glow", p.glow);
   }, [t.palette]);
   useEffect(() => { document.body.classList.toggle("no-grain", !t.grain); }, [t.grain]);
-  useEffect(() => { document.body.classList.toggle("no-light-cursor", !t.lightCursor); }, [t.lightCursor]);
+  useEffect(() => { document.body.classList.toggle("no-light-cursor", !t.lightCursor || IS_TOUCH); }, [t.lightCursor]);
 
   // ---- boot ----
   const onBootDone = useCallback(() => {
@@ -70,17 +114,17 @@ function App() {
 
   // ---- enter / leave a lifeform ----
   const enter = useCallback((id, org) => {
-    if (!window.ENV_BY_ID[id]) return;
+    if (!ENV_BY_ID[id]) return;
     clearTimeout(closeTimer.current);
     setOrigin(org || { x: window.innerWidth / 2, y: window.innerHeight / 2 });
     setMode(id);
     setInteriorOpen(false);
+    if (audioRef.current) audioRef.current.bloom(NODE_NOTE[id]);
     setVisited((v) => {
       if (v[id]) return v;
       const next = { ...v, [id]: Date.now() };
       try { localStorage.setItem("habitat-visited", JSON.stringify(next)); } catch (e) {}
-      // celebrate unlocking the secret
-      const core = window.NODES.filter(n => !n.hidden);
+      const core = NODES.filter(n => !n.hidden);
       if (id !== "echo" && core.every(n => next[n.id])) {
         setTimeout(() => flash("✦  the habitat opens a hidden layer — find the echo at the edge"), 700);
       }
@@ -91,6 +135,7 @@ function App() {
 
   const leave = useCallback(() => {
     setInteriorOpen(false);
+    if (audioRef.current) audioRef.current.leave();
     clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setMode(null), 600);
   }, []);
@@ -108,6 +153,11 @@ function App() {
   const finishHint = useCallback(() => {
     setHintDone(true);
     try { localStorage.setItem("habitat-hint", "1"); } catch (e) {}
+  }, []);
+
+  // ---- wake tone passthrough ----
+  const onWake = useCallback((note) => {
+    if (audioRef.current) audioRef.current.wake(note);
   }, []);
 
   // ---- paw rain ----
@@ -135,7 +185,7 @@ function App() {
     function onKey(e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPaletteOpen((o) => !o); }
       if (e.key === "Escape") {
-        if (paletteOpen) return;            // palette handles its own esc
+        if (paletteOpen) return;
         if (spec) { setSpec(null); return; }
         if (mode) { leave(); }
       }
@@ -145,9 +195,9 @@ function App() {
   }, [mode, spec, paletteOpen, leave]);
 
   // ---- command palette entries ("the call") ----
-  const coreNodes = window.NODES.filter(n => !n.hidden);
+  const coreNodes = NODES.filter(n => !n.hidden);
   const allKnown = coreNodes.every(n => visited[n.id]);
-  const navCommands = window.NODES
+  const navCommands = NODES
     .filter(n => !n.hidden || allKnown)
     .map((n) => ({
       id: "go-" + n.id, group: "wander to", glyph: n.id === "echo" ? "◞◟" : "→",
@@ -164,6 +214,8 @@ function App() {
       keywords: "spirit ghost summon", run: () => flash("ᗤ  a spirit drifts up from the console ...") },
     { id: "rain", group: "habitat", glyph: "🐾", label: "make it rain paws", hint: "secret",
       keywords: "rain paws secret fun", run: pawRain },
+    { id: "sound", group: "system", glyph: t.muted ? "🔇" : "♪", label: (t.muted ? "unmute" : "mute") + " the habitat", hint: "audio",
+      keywords: "sound audio mute unmute music", run: () => setTweak("muted", !t.muted) },
     { id: "creatures", group: "system", glyph: "❍", label: "cycle creature density", hint: t.density,
       keywords: "creatures toggle density", run: () => setTweak("density", t.density === "maximal" ? "subtle" : t.density === "lively" ? "maximal" : "lively") },
     { id: "light", group: "system", glyph: "◌", label: (t.lightCursor ? "hide" : "show") + " your light", hint: "cursor",
@@ -176,25 +228,29 @@ function App() {
       keywords: "reboot restart boot", run: () => { try { sessionStorage.removeItem("habitat-booted"); } catch (e) {} setBooted(false); setShowBoot(true); } },
   ];
 
-  const Interior = mode ? window.ENV_BY_ID[mode] : null;
-  const companionArt = mode && window.ASCII.NODE_ART[mode] ? window.ASCII.NODE_ART[mode][0] : "";
+  const Interior = mode ? ENV_BY_ID[mode] : null;
+  const companionArt = mode && ASCII.NODE_ART[mode] ? ASCII.NODE_ART[mode][0] : "";
+  const interiorTint = mode ? NODE_TINT[mode] : null;
+  const interiorGlow = mode ? NODE_GLOW[mode] : null;
 
   return (
     <React.Fragment>
       <div className="habitat-bg"></div>
       <div className="habitat-grid"></div>
 
-      {!showBoot && <window.CreatureLayer density={t.density} />}
+      {!showBoot && <CreatureLayer density={t.density} />}
 
       {/* ---- the field: signature navigation ---- */}
       {!showBoot && (
-        <window.HabitatField
+        <HabitatField
           visited={visited}
           onEnter={enter}
+          onWake={onWake}
           hintDone={hintDone}
           onHintDone={finishHint}
-          lightCursor={t.lightCursor}
+          lightCursor={t.lightCursor && !IS_TOUCH}
           paused={!!mode}
+          touch={IS_TOUCH}
         />
       )}
 
@@ -202,7 +258,7 @@ function App() {
       {!showBoot && mode && Interior && (
         <div
           className={"interior" + (interiorOpen ? " open" : "")}
-          style={{ "--ox": origin.x + "px", "--oy": origin.y + "px" }}
+          style={{ "--ox": origin.x + "px", "--oy": origin.y + "px", "--a-interior": interiorTint, "--a-interior-rgb": interiorGlow }}
         >
           <div className="interior-head">
             <span className="ih-here">inside <b>{NAMES[mode] || mode}</b></span>
@@ -225,10 +281,10 @@ function App() {
       )}
 
       {/* ---- boot ---- */}
-      {showBoot && <window.BootSequence onDone={onBootDone} />}
+      {showBoot && <BootSequence onDone={onBootDone} />}
 
       {/* ---- command palette ---- */}
-      <window.CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
 
       {/* ---- specimen modal ---- */}
       {spec && (
@@ -239,7 +295,7 @@ function App() {
               <span>{spec.id} — specimen</span>
               <span className="sm-close" onClick={() => setSpec(null)}>[ esc ]</span>
             </div>
-            <pre className="sm-art">{window.ASCII.SPECIMEN_ART[spec.art]}</pre>
+            <pre className="sm-art">{ASCII.SPECIMEN_ART[spec.art]}</pre>
             <div className="sm-body">
               <div className="sm-title">{spec.title}</div>
               <div className="sm-desc">{spec.desc}</div>
@@ -258,6 +314,7 @@ function App() {
         <TweakRadio label="Accent" value={t.palette} options={["amber", "aqua", "mixed", "mono"]}
           onChange={(v) => setTweak("palette", v)} />
         <TweakSection label="The field" />
+        <TweakToggle label="Sound" value={!t.muted} onChange={(v) => setTweak("muted", !v)} />
         <TweakToggle label="Your light (cursor)" value={t.lightCursor} onChange={(v) => setTweak("lightCursor", v)} />
         <TweakRadio label="Ambient creatures" value={t.density} options={["subtle", "lively", "maximal"]}
           onChange={(v) => setTweak("density", v)} />
@@ -276,5 +333,3 @@ function App() {
   s.textContent = "@keyframes pawFall{0%{opacity:0;transform:translateY(0) rotate(0)}10%{opacity:.85}100%{opacity:0;transform:translateY(105vh) rotate(40deg)}}";
   document.head.appendChild(s);
 })();
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);

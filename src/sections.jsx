@@ -1,9 +1,10 @@
 /* ============================================================
    sections.jsx — the six environments of HABITAT OS
-   exports: window.SECTIONS (meta for rail) + window.Environments
    ============================================================ */
+import React from "react";
+import { ASCII } from "./ascii.js";
 
-const SECTIONS = [
+export const SECTIONS = [
   { id: "wake",       glyph: "◐", name: "wake",       sub: "boot · intro" },
   { id: "inhabitant", glyph: "❍", name: "inhabitant", sub: "about" },
   { id: "specimens",  glyph: "❖", name: "specimens",  sub: "selected work" },
@@ -52,53 +53,8 @@ function Typer({ lines, start }) {
   );
 }
 
-/* ---------- WAKE / hero ---------- */
-function EnvWake({ booted, go }) {
-  return (
-    <section className="env" id="env-wake" data-screen-label="wake">
-      <div className="hero-wrap">
-        <div>
-          <div className="kicker reveal d1">◐ habitat.os // inhabitant: artemko_flansee</div>
-          <h1 className="hero-name reveal d2">
-            Artemko<br /><span className="ln2">Flansee</span>
-          </h1>
-          <p className="lede hero-sub reveal d3">
-            Creative technologist &amp; interface gardener. I grow calm, living
-            software — quiet places that breathe, remember, and occasionally
-            blink back at you.
-          </p>
-          <div className="hero-cta reveal d4">
-            <button className="btn primary" onClick={() => go("specimens")}>
-              wander the habitat <span className="arr">→</span>
-            </button>
-            <button className="btn" onClick={() => go("signal")}>send a signal</button>
-          </div>
-        </div>
-        <div className="hero-side">
-          <div className="panel win hero-term reveal d3">
-            <div className="win-bar">
-              <span className="lights"><i></i><i></i><i></i></span>
-              <span>~/welcome — habitat</span>
-            </div>
-            <Typer
-              start={booted}
-              lines={[
-                { t: "initializing creative environment ...", cls: "dim" },
-                { t: "loading memories ...", cls: "dim" },
-                { t: "3 cats are sleeping nearby.", cls: "ok" },
-                { t: "welcome to my digital habitat.", cls: "pre" },
-              ]}
-            />
-          </div>
-          <pre className="ascii-mascot reveal d4">{window.ASCII.MASCOT}</pre>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ---------- INHABITANT / about ---------- */
-function EnvInhabitant() {
+export function EnvInhabitant() {
   const chips = ["TypeScript", "WebGL / GLSL", "Canvas", "Framer Motion", "Three.js", "p5.js", "Rust", "Figma", "Tailwind"];
   const stats = [
     { k: "based in", v: "Lisbon — usually drifting" },
@@ -109,6 +65,7 @@ function EnvInhabitant() {
   return (
     <section className="env" id="env-inhabitant" data-screen-label="inhabitant">
       <div className="env-tag reveal"><span className="num">01</span> inhabitant — who lives here</div>
+      <h2 className="env-display reveal d1">who lives here</h2>
       <div className="about-grid">
         <div>
           <p className="about-lead reveal d1">
@@ -147,10 +104,11 @@ const SPECIMENS = [
   { id: "SP-005", art: "relay", title: "Relay", status: "wip",  desc: "Peer-to-peer messaging built entirely on doodles. No words allowed — only drawings between minds.", tags: ["p2p", "play"] },
   { id: "SP-006", art: "seed",  title: "Seed",  status: "live", desc: "A procedural creature generator. Every cat, blob and spirit roaming this site was grown in Seed.", tags: ["ascii", "toy"] },
 ];
-function EnvSpecimens({ onOpen }) {
+export function EnvSpecimens({ onOpen }) {
   return (
     <section className="env" id="env-specimens" data-screen-label="specimens">
       <div className="env-tag reveal"><span className="num">02</span> specimens — selected work · a small field guide</div>
+      <h2 className="env-display reveal d1">a field guide</h2>
       <div className="specimen-grid">
         {SPECIMENS.map((s, i) => (
           <div className={"panel specimen reveal d" + ((i % 2) + 1)} key={s.id} onClick={() => onOpen(s)}>
@@ -158,7 +116,7 @@ function EnvSpecimens({ onOpen }) {
               <span className="sp-id">{s.id}</span>
               <span className={"sp-status " + (s.status === "wip" ? "wip" : "")}>{s.status === "wip" ? "growing" : "alive"}</span>
             </div>
-            <pre className="sp-art">{window.ASCII.SPECIMEN_ART[s.art]}</pre>
+            <pre className="sp-art">{ASCII.SPECIMEN_ART[s.art]}</pre>
             <div className="sp-body">
               <div className="sp-title">{s.title}</div>
               <div className="sp-desc">{s.desc}</div>
@@ -180,10 +138,11 @@ const INSTINCTS = [
   { name: "generative systems",     lvl: 80, note: "things that grow" },
   { name: "type & layout",          lvl: 86, note: "breathing whitespace" },
 ];
-function EnvInstincts() {
+export function EnvInstincts() {
   return (
     <section className="env" id="env-instincts" data-screen-label="instincts">
       <div className="env-tag reveal"><span className="num">03</span> instincts — what the inhabitant is good at</div>
+      <h2 className="env-display reveal d1">instincts</h2>
       <div className="instinct-grid">
         {INSTINCTS.map((s, i) => (
           <div className={"instinct reveal d" + ((i % 3) + 1)} key={s.name}>
@@ -207,10 +166,11 @@ const MIGRATIONS = [
   { when: "2019 — 2021", role: "Product Designer / Developer", org: "Northlight Labs", desc: "Designed and shipped data tools end-to-end — and quietly fell in love with generative art on the side." },
   { when: "2017 — 2019", role: "The self-taught loop", org: "long nights · canvas · coffee", desc: "Where it began: shaders, sketches, and far too much curiosity about what an interface could feel like." },
 ];
-function EnvMigrations() {
+export function EnvMigrations() {
   return (
     <section className="env" id="env-migrations" data-screen-label="migrations">
       <div className="env-tag reveal"><span className="num">04</span> migrations — where the inhabitant has wandered</div>
+      <h2 className="env-display reveal d1">migrations</h2>
       <div className="migrations">
         {MIGRATIONS.map((m, i) => (
           <div className={"mig reveal d" + ((i % 3) + 1)} key={m.role}>
@@ -232,7 +192,7 @@ const LINKS = [
   { glyph: "✦", label: "x / twitter", val: "@artemkodraws", href: "#" },
   { glyph: "❖", label: "are.na", val: "are.na/artemko", href: "#" },
 ];
-function EnvSignal() {
+export function EnvSignal() {
   return (
     <section className="env" id="env-signal" data-screen-label="signal">
       <div className="env-tag reveal"><span className="num">05</span> signal — send something into the habitat</div>
@@ -262,7 +222,7 @@ function EnvSignal() {
         </div>
       </div>
       <div className="signal-foot reveal" style={{ marginTop: 54, fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)" }}>
-        {window.ASCII.DECO.stars} <br />
+        {ASCII.DECO.stars} <br />
         habitat.os — handcrafted with warm light · {new Date().getFullYear()} · press ⌘K anytime
       </div>
     </section>
@@ -270,7 +230,7 @@ function EnvSignal() {
 }
 
 /* ---------- ECHO / the secret heart ---------- */
-function EnvEcho({ onRain, onReturn }) {
+export function EnvEcho({ onRain, onReturn }) {
   return (
     <section className="env" id="env-echo" data-screen-label="echo">
       <div className="echo-wrap">
@@ -297,22 +257,7 @@ function EnvEcho({ onRain, onReturn }) {
   );
 }
 
-window.SECTIONS = SECTIONS;
-window.Environments = { EnvWake, EnvInhabitant, EnvSpecimens, EnvInstincts, EnvMigrations, EnvSignal, EnvEcho };
-window.ENV_BY_ID = { inhabitant: EnvInhabitant, specimens: EnvSpecimens, instincts: EnvInstincts, migrations: EnvMigrations, signal: EnvSignal, echo: EnvEcho };
-
-/* Memoized so App re-renders (scroll active-state, clock, tweaks) never strip
-   the imperatively-added `.in` reveal classes from these nodes. */
-const Sections = React.memo(function Sections({ booted, go, onOpen }) {
-  return (
-    <React.Fragment>
-      <EnvWake booted={booted} go={go} />
-      <EnvInhabitant />
-      <EnvSpecimens onOpen={onOpen} />
-      <EnvInstincts />
-      <EnvMigrations />
-      <EnvSignal />
-    </React.Fragment>
-  );
-});
-window.Sections = Sections;
+export const ENV_BY_ID = {
+  inhabitant: EnvInhabitant, specimens: EnvSpecimens, instincts: EnvInstincts,
+  migrations: EnvMigrations, signal: EnvSignal, echo: EnvEcho,
+};

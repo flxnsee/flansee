@@ -12,11 +12,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy via rsync
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy dist/ via rsync
         uses: burnett01/rsync-deployments@7.0.1
         with:
           switches: -avz --delete
-          path: ./
+          path: dist/
           remote_path: /var/www/flansee/
           remote_host: 77.90.45.31
           remote_user: root
@@ -29,6 +41,5 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            chmod 755 /var/www/flansee
-            chmod 644 /var/www/flansee/*
+            chmod -R a+rX /var/www/flansee
             echo "Deployed at $(date)"
