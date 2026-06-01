@@ -8,12 +8,12 @@
 /* Each lifeform = one section. Positions are fractions of the
    viewport from the centre, so the constellation scales naturally. */
 const NODES = [
-  { id: "inhabitant", name: "inhabitant", sub: "who lives here", fx: -0.30, fy: -0.19, sp: 0.00042, amp: 13, ph: 0.0 },
-  { id: "specimens",  name: "specimens",  sub: "the works",      fx:  0.31, fy: -0.24, sp: 0.00035, amp: 16, ph: 1.7 },
-  { id: "instincts",  name: "instincts",  sub: "what it can do", fx: -0.27, fy:  0.27, sp: 0.00048, amp: 12, ph: 3.1 },
-  { id: "migrations", name: "migrations", sub: "where it wandered", fx: 0.30, fy: 0.25, sp: 0.00030, amp: 18, ph: 4.6 },
-  { id: "signal",     name: "signal",     sub: "say hello",      fx:  0.03, fy: -0.355, sp: 0.00052, amp: 11, ph: 5.5 },
-  { id: "echo",       name: "echo",       sub: "·",              fx: -0.44, fy:  0.39, sp: 0.00038, amp: 15, ph: 2.3, hidden: true },
+  { id: "inhabitant", name: "inhabitant", sub: "who lives here",    fx: -0.38, fy: -0.14, sp: 0.00042, amp: 13, ph: 0.0 },
+  { id: "specimens",  name: "specimens",  sub: "the works",         fx:  0.36, fy: -0.20, sp: 0.00035, amp: 16, ph: 1.7 },
+  { id: "instincts",  name: "instincts",  sub: "what it can do",    fx: -0.10, fy:  0.38, sp: 0.00048, amp: 12, ph: 3.1 },
+  { id: "migrations", name: "migrations", sub: "where it wandered", fx:  0.34, fy:  0.26, sp: 0.00030, amp: 18, ph: 4.6 },
+  { id: "signal",     name: "signal",     sub: "say hello",         fx:  0.04, fy: -0.38, sp: 0.00052, amp: 11, ph: 5.5 },
+  { id: "echo",       name: "echo",       sub: "·",                 fx: -0.44, fy:  0.40, sp: 0.00038, amp: 15, ph: 2.3, hidden: true },
 ];
 window.NODES = NODES;
 
