@@ -98,9 +98,8 @@ function CreatureLayer({ density }) {
         fy: rand(0.00022, 0.00038), // y frequency
         px: rand(0, 6.28),          // x phase
         py: rand(0, 6.28),          // y phase
-        baseOp: type === "spirit" ? rand(0.28, 0.42) : rand(0.32, 0.48),
-        op: 0,
-        targetOp: 0,
+        op: 1,
+        targetOp: 1,
       };
     });
 
@@ -138,11 +137,13 @@ function CreatureLayer({ density }) {
         c.el.style.transform = `translate(${x}px, ${y}px)`;
 
         /* Spirits fade when cursor is near */
-        const dx = x - mx, dy = y - my;
-        const near = dx * dx + dy * dy < 28000;
-        c.targetOp = (c.type === "spirit" && near) ? 0.06 : c.baseOp;
-        c.op += (c.targetOp - c.op) * 0.055;
-        c.el.style.opacity = c.op.toFixed(3);
+        if (c.type === "spirit") {
+          const dx = x - mx, dy = y - my;
+          const near = dx * dx + dy * dy < 28000;
+          c.targetOp = near ? 0.15 : 1;
+          c.op += (c.targetOp - c.op) * 0.055;
+          c.el.style.opacity = c.op.toFixed(3);
+        }
       });
       raf = requestAnimationFrame(tick);
     };
