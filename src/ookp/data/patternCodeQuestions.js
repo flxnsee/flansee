@@ -81,7 +81,7 @@ function makeOptions(answer, offset) {
 
 export const patternCodeQuestions = patternCodeItems.map(([answer, image], index) => ({
   id: `pat-code-${index + 1}`,
-  topic: 'Патерни',
+  topic: 'Патерни за кодом',
   question: 'Який патерн зображено у фрагменті коду на скріні?',
   image: `/ookp-pattern-code/${image}`,
   imageAlt: `Фрагмент коду для патерну ${answer}`,
