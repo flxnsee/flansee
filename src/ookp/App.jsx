@@ -81,7 +81,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <span className="env-tag">ООКП · habitat</span>
+        <span className="env-tag">ООКП</span>
         <h1>Тренажер до екзамену</h1>
         <p className="subtitle">// білети по {TICKET_SIZE} випадкових питань</p>
       </header>
