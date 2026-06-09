@@ -25,6 +25,12 @@ export default function Question({ question, selected, onChange, review }) {
         <span className="q-topic">{question.topic}</span>
       </p>
 
+      {question.image && (
+        <figure className="q-image-wrap">
+          <img className="q-image" src={question.image} alt={question.imageAlt || question.question} />
+        </figure>
+      )}
+
       <ul className="options">
         {question.options.map((opt) => {
           const checked = selected.includes(opt.idx)

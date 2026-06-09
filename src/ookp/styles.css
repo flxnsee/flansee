@@ -311,6 +311,22 @@ body {
 .q-topic {
   color: var(--sage-deep);
 }
+.q-image-wrap {
+  margin: 0 0 18px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: auto;
+  box-shadow: var(--shadow-soft), var(--hi);
+}
+.q-image {
+  display: block;
+  width: 100%;
+  min-width: 520px;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
 
 .options {
   list-style: none;
