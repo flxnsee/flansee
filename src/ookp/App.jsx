@@ -14,6 +14,10 @@ export default function App() {
   const [ticket, setTicket] = useState(null)
   // answers: { [questionId]: number[] (обрані idx) }
   const [answers, setAnswers] = useState({})
+  // practice === true -> навчальний режим (миттєвий фідбек після «Перевірити»)
+  const [practice, setPractice] = useState(false)
+  // revealed -> id питань, які вже «розкриті» в навчальному режимі
+  const [revealed, setRevealed] = useState([])
 
   // Відновлення незавершеного білета з localStorage.
   useEffect(() => {
@@ -25,6 +29,8 @@ export default function App() {
           setScreen(saved.screen)
           setTicket(saved.ticket)
           setAnswers(saved.answers || {})
+          setPractice(saved.practice || false)
+          setRevealed(saved.revealed || [])
         }
       }
     } catch {
@@ -39,25 +45,32 @@ export default function App() {
       return
     }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ screen, ticket, answers }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ screen, ticket, answers, practice, revealed }))
     } catch {
       /* сховище недоступне — не критично */
     }
-  }, [screen, ticket, answers])
+  }, [screen, ticket, answers, practice, revealed])
 
-  function startTicket(topic, mode) {
+  function startTicket(topic, format, isPractice) {
     const pool = topic === 'all' ? questions : questions.filter((q) => q.topic === topic)
     const newTicket =
-      mode === 'all'
+      format === 'all'
         ? buildTicket(pool, pool.length, { ordered: true })
         : buildTicket(pool, TICKET_SIZE)
     setTicket(newTicket)
     setAnswers({})
+    setPractice(!!isPractice)
+    setRevealed([])
     setScreen('quiz')
   }
 
   function setAnswer(questionId, selected) {
     setAnswers((prev) => ({ ...prev, [questionId]: selected }))
+  }
+
+  // Розкрити правильну відповідь у навчальному режимі.
+  function revealQuestion(questionId) {
+    setRevealed((prev) => (prev.includes(questionId) ? prev : [...prev, questionId]))
   }
 
   function finishQuiz() {
@@ -68,13 +81,15 @@ export default function App() {
     setScreen('start')
     setTicket(null)
     setAnswers({})
+    setRevealed([])
   }
 
-  // Новий білет із тих самих питань, що були неправильні.
+  // Новий білет із тих самих питань, що були неправильні (зберігаємо поточний режим).
   function retryWrong(wrongQuestions) {
     if (!wrongQuestions.length) return
     setTicket(buildTicket(wrongQuestions, wrongQuestions.length))
     setAnswers({})
+    setRevealed([])
     setScreen('quiz')
   }
 
@@ -95,6 +110,9 @@ export default function App() {
           onAnswer={setAnswer}
           onFinish={finishQuiz}
           onExit={backToStart}
+          practice={practice}
+          revealed={revealed}
+          onReveal={revealQuestion}
         />
       )}
 

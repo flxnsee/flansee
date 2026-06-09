@@ -251,6 +251,42 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--a-glow), 0.15);
 }
+/* перемикач навчального режиму */
+.check-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 22px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--ivory);
+  box-shadow: var(--hi);
+  cursor: pointer;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+.check-field:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-soft), var(--hi);
+}
+.check-field input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent-deep);
+  cursor: pointer;
+}
+.check-text {
+  flex: 1;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.check-text strong {
+  color: var(--ink);
+}
+
 .start-actions {
   display: flex;
   flex-direction: column;
@@ -443,6 +479,11 @@ body {
   color: var(--sage-deep);
   border-color: var(--sage);
   background: rgba(143, 174, 141, 0.12);
+}
+.dot-wrong {
+  color: var(--brick);
+  border-color: var(--brick);
+  background: var(--brick-soft);
 }
 .dot-current {
   background: var(--ink);

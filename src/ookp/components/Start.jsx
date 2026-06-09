@@ -3,6 +3,7 @@ import { TOPICS, questions } from '../data/questions.js'
 
 export default function Start({ onStart, total }) {
   const [topic, setTopic] = useState('all')
+  const [practice, setPractice] = useState(false)
 
   const countFor = (t) => (t === 'all' ? total : questions.filter((q) => q.topic === t).length)
 
@@ -26,19 +27,32 @@ export default function Start({ onStart, total }) {
         </select>
       </label>
 
+      <label className="check-field">
+        <input
+          type="checkbox"
+          checked={practice}
+          onChange={(e) => setPractice(e.target.checked)}
+        />
+        <span className="check-text">
+          <strong>Навчальний режим</strong> — показувати відповідь і пояснення одразу
+          після перевірки кожного питання
+        </span>
+      </label>
+
       <div className="start-actions">
-        <button className="btn btn-primary btn-lg" onClick={() => onStart(topic, 'ticket')}>
+        <button className="btn btn-primary btn-lg" onClick={() => onStart(topic, 'ticket', practice)}>
           Згенерувати білет (20 питань)
         </button>
-        <button className="btn btn-lg" onClick={() => onStart(topic, 'all')}>
+        <button className="btn btn-lg" onClick={() => onStart(topic, 'all', practice)}>
           Пройти всі питання ({countFor(topic)})
         </button>
       </div>
 
       <p className="hint">
         «Білет» — 20 випадкових питань (як на іспиті). «Всі питання» — повний прохід
-        по черзі за темами. Якщо у вибраній темі менше 20 питань — у білет потрапить
-        стільки, скільки є.
+        по черзі за темами. У <strong>навчальному режимі</strong> після кнопки
+        «Перевірити» одразу видно правильну відповідь; інакше (екзамен) бал і розбір
+        зʼявляються лише наприкінці.
       </p>
     </main>
   )
