@@ -355,6 +355,35 @@ body {
   background: #fff;
   overflow: auto;
   box-shadow: var(--shadow-soft), var(--hi);
+  cursor: zoom-in;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+.q-image-wrap:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lift), var(--hi);
+}
+
+/* лупа на весь екран (z-index вище за зерно .habitat-grain: 60) */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(43, 40, 35, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  cursor: zoom-out;
+}
+.lightbox img {
+  max-width: min(1500px, 94vw);
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  background: #fff;
+  padding: 10px;
+  border-radius: var(--radius);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
 }
 .q-image {
   display: block;
@@ -484,6 +513,21 @@ body {
   color: var(--brick);
   border-color: var(--brick);
   background: var(--brick-soft);
+}
+
+/* підказка клавіш — лише там, де є фізична клавіатура */
+.kbd-hint {
+  margin: 14px 0 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+@media (hover: none) {
+  .kbd-hint {
+    display: none;
+  }
 }
 .dot-current {
   background: var(--ink);

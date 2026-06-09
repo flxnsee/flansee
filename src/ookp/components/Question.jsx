@@ -1,9 +1,29 @@
+import { useState, useEffect } from 'react'
 import { correctCount } from '../utils/ticket.js'
 
 // Питання у режимі відповіді (review === false) або перегляду (review === true).
 export default function Question({ question, selected, onChange, review }) {
   const multi = question.multi
   const need = correctCount(question)
+  // Лупа для скрінів коду (клік — збільшити на весь екран).
+  const [zoomed, setZoomed] = useState(false)
+
+  // Скидаємо лупу при переході до іншого питання.
+  useEffect(() => setZoomed(false), [question.id])
+
+  // Будь-яка клавіша закриває лупу й не зачіпає клавіатурну навігацію тесту.
+  useEffect(() => {
+    if (!zoomed) return
+    function onKey(e) {
+      // stopImmediatePropagation, бо обробник тесту висить на тому ж window —
+      // звичайний stopPropagation його не зупинив би.
+      e.stopImmediatePropagation()
+      e.preventDefault()
+      setZoomed(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [zoomed])
 
   function toggle(idx) {
     if (review) return
@@ -26,9 +46,19 @@ export default function Question({ question, selected, onChange, review }) {
       </p>
 
       {question.image && (
-        <figure className="q-image-wrap">
+        <figure
+          className="q-image-wrap"
+          onClick={() => setZoomed(true)}
+          title="Натисни, щоб збільшити"
+        >
           <img className="q-image" src={question.image} alt={question.imageAlt || question.question} />
         </figure>
+      )}
+
+      {zoomed && (
+        <div className="lightbox" onClick={() => setZoomed(false)}>
+          <img src={question.image} alt={question.imageAlt || question.question} />
+        </div>
       )}
 
       <ul className="options">
