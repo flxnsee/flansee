@@ -530,7 +530,7 @@ body {
   position: absolute;
   top: 0; /* = верхній край картки (перший in-flow елемент .stage) */
   right: 32px;
-  width: 124px;
+  width: 72px;
   pointer-events: none;
   line-height: 0;
   /* без transform/z-index — діти мають стекатися незалежно відносно картки */
@@ -549,7 +549,7 @@ body {
 }
 .pixel-cat svg {
   display: block;
-  width: 124px;
+  width: 72px;
   height: auto;
   shape-rendering: crispEdges;
   pointer-events: auto;
@@ -565,7 +565,7 @@ body {
 }
 .cat-paws svg {
   display: block;
-  width: 58px;
+  width: 34px;
   height: auto;
   shape-rendering: crispEdges;
   pointer-events: auto;
@@ -576,14 +576,14 @@ body {
 }
 @media (max-width: 720px) {
   .cat-wrap {
-    width: 92px;
+    width: 58px;
     right: 18px;
   }
   .pixel-cat svg {
-    width: 92px;
+    width: 58px;
   }
   .cat-paws svg {
-    width: 44px;
+    width: 27px;
   }
 }
 /* реакції — «чанкові» піксельні рухи */
