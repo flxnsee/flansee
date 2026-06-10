@@ -262,9 +262,10 @@ export default function Cat({ mood }) {
         </svg>
       </div>
       <div className="cat-paws">
-        <svg viewBox="0 0 5 9" onClick={onPet}>
+        {/* дві лапки поряд, пальчики загинаються вниз через верхню межу */}
+        <svg viewBox="0 0 13 3" onClick={onPet}>
           {mapToRects(PAW, 'paw1', 0)}
-          {mapToRects(PAW, 'paw2', 6)}
+          <g transform="translate(8,0)">{mapToRects(PAW, 'paw2', 0)}</g>
         </svg>
       </div>
     </div>
