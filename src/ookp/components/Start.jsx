@@ -4,6 +4,7 @@ import { TOPICS, questions } from '../data/questions.js'
 export default function Start({ onStart, total }) {
   const [topic, setTopic] = useState('all')
   const [practice, setPractice] = useState(false)
+  const [shuffleAll, setShuffleAll] = useState(false)
 
   const countFor = (t) => (t === 'all' ? total : questions.filter((q) => q.topic === t).length)
 
@@ -39,11 +40,23 @@ export default function Start({ onStart, total }) {
         </span>
       </label>
 
+      <label className="check-field">
+        <input
+          type="checkbox"
+          checked={shuffleAll}
+          onChange={(e) => setShuffleAll(e.target.checked)}
+        />
+        <span className="check-text">
+          <strong>Перемішати питання</strong> — повний прохід у випадковому порядку,
+          а не за темами (білет і так завжди випадковий)
+        </span>
+      </label>
+
       <div className="start-actions">
-        <button className="btn btn-primary btn-lg" onClick={() => onStart(topic, 'ticket', practice)}>
+        <button className="btn btn-primary btn-lg" onClick={() => onStart(topic, 'ticket', practice, shuffleAll)}>
           Згенерувати білет (20 питань)
         </button>
-        <button className="btn btn-lg" onClick={() => onStart(topic, 'all', practice)}>
+        <button className="btn btn-lg" onClick={() => onStart(topic, 'all', practice, shuffleAll)}>
           Пройти всі питання ({countFor(topic)})
         </button>
       </div>

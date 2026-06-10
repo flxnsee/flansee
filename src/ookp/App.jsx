@@ -54,11 +54,11 @@ export default function App() {
     }
   }, [screen, ticket, answers, practice, revealed])
 
-  function startTicket(topic, format, isPractice) {
+  function startTicket(topic, format, isPractice, shuffleAll) {
     const pool = topic === 'all' ? questions : questions.filter((q) => q.topic === topic)
     const newTicket =
       format === 'all'
-        ? buildTicket(pool, pool.length, { ordered: true })
+        ? buildTicket(pool, pool.length, { ordered: !shuffleAll })
         : buildTicket(pool, TICKET_SIZE)
     setTicket(newTicket)
     setAnswers({})
