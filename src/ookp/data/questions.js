@@ -1808,12 +1808,12 @@ if (elementDepth == fElementTypeStack.length) {
     question: 'До якого з патернів краще за все підходить метафора «матрьошка»?',
     multi: false,
     options: [
-      ['Компонувальник (Composite)', true],
+      ['Компонувальник (Composite)', false],
       ['Ланцюжок обовʼязків (Chain of Responsibility)', false],
-      ['Декоратор (Decorator)', false],
+      ['Декоратор (Decorator)', true],
       ['Будівельник (Builder)', false],
     ],
-    note: 'Composite — деревоподібна структура, обʼєкт містить інші обʼєкти (як матрьошка).',
+    note: 'Декоратор (Decorator) — патерн, у якому обʼєкт динамічно обгортається іншим обʼєктом (набуваючи нової поведінки), створюючи структуру, схожу на матрьошку.',
   },
   {
     id: 'pat-17',
