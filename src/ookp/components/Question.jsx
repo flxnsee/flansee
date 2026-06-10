@@ -61,6 +61,12 @@ export default function Question({ question, selected, onChange, review }) {
         </div>
       )}
 
+      {question.code && (
+        <pre className="q-code">
+          <code>{question.code}</code>
+        </pre>
+      )}
+
       <ul className="options">
         {question.options.map((opt) => {
           const checked = selected.includes(opt.idx)

@@ -392,6 +392,21 @@ body {
   height: auto;
   border-radius: var(--radius-sm);
 }
+.q-code {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  overflow-x: auto;
+  font: 500 0.86rem/1.55 var(--mono);
+  box-shadow: var(--shadow-soft), var(--hi);
+}
+.q-code code {
+  font: inherit;
+  white-space: pre;
+}
 
 .options {
   list-style: none;
