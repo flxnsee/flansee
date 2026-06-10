@@ -115,6 +115,9 @@ export default function Cat({ mood }) {
   const [twitch, setTwitch] = useState(false)
   const [sleeping, setSleeping] = useState(false)
   const [hiding, setHiding] = useState(false)
+  // пробіжки з краю в край верхньої межі
+  const [side, setSide] = useState('right')
+  const [running, setRunning] = useState(false)
   const [pupil, setPupil] = useState({ dx: -1, dy: 1 }) // за замовч. дивиться на користувача
   const [reaction, setReaction] = useState(null)
   const [pet, setPet] = useState(false)
@@ -164,6 +167,31 @@ export default function Cat({ mood }) {
     }
   }, [])
 
+  // Пробіжка: зрідка перебігає верхнім краєм у протилежний кут.
+  useEffect(() => {
+    if (reducedMotion.current) return
+    let t1
+    let t2
+    let t3
+    function schedule() {
+      t1 = setTimeout(() => {
+        setRunning(true)
+        // невелика пауза «пригнутись», потім поїхали
+        t2 = setTimeout(() => setSide((s) => (s === 'right' ? 'left' : 'right')), 250)
+        t3 = setTimeout(() => {
+          setRunning(false)
+          schedule()
+        }, 3100)
+      }, 40000 + Math.random() * 40000)
+    }
+    schedule()
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+  }, [])
+
   // Зіниці стежать за курсором + активність будить котика.
   useEffect(() => {
     let last = 0
@@ -172,7 +200,8 @@ export default function Cat({ mood }) {
       const now = Date.now()
       if (now - last < 60) return
       last = now
-      const rect = wrapRef.current?.getBoundingClientRect()
+      // позиція самого кота (слайдер), бо обгортка — на всю ширину картки
+      const rect = wrapRef.current?.firstElementChild?.getBoundingClientRect()
       if (!rect) return
       const cx = rect.left + rect.width / 2
       const cy = rect.top + rect.height / 2
@@ -247,26 +276,28 @@ export default function Cat({ mood }) {
   return (
     <div
       ref={wrapRef}
-      className={`cat-wrap ${stateClass} ${hiding ? 'cat-hiding' : ''}`}
+      className={`cat-wrap ${stateClass} ${hiding ? 'cat-hiding' : ''} ${running ? 'cat-running' : ''} ${side === 'left' ? 'cat-at-left' : ''}`}
       aria-hidden="true"
     >
-      <div className="pixel-cat">
-        <svg viewBox="0 0 24 30" onClick={onPet}>
-          {pointsToRects(tail, C.k, 'tail', DY)}
-          {mapToRects(fur, 'fur', DY)}
-          {eyeEls}
-          {pointsToRects(NOSE, C.p, 'nose', DY)}
-          {showHeart && pointsToRects(HEART, HEART_C, 'heart')}
-          {sad && pointsToRects(DOTS, C.k, 'dots')}
-          {sleeping && pointsToRects(ZZZ, C.k, 'zzz')}
-        </svg>
-      </div>
-      <div className="cat-paws">
-        {/* дві лапки поряд, пальчики загинаються вниз через верхню межу */}
-        <svg viewBox="0 0 13 3" onClick={onPet}>
-          {mapToRects(PAW, 'paw1', 0)}
-          <g transform="translate(8,0)">{mapToRects(PAW, 'paw2', 0)}</g>
-        </svg>
+      <div className="cat-slider">
+        <div className="pixel-cat">
+          <svg viewBox="0 0 24 30" onClick={onPet}>
+            {pointsToRects(tail, C.k, 'tail', DY)}
+            {mapToRects(fur, 'fur', DY)}
+            {eyeEls}
+            {pointsToRects(NOSE, C.p, 'nose', DY)}
+            {showHeart && pointsToRects(HEART, HEART_C, 'heart')}
+            {sad && pointsToRects(DOTS, C.k, 'dots')}
+            {sleeping && pointsToRects(ZZZ, C.k, 'zzz')}
+          </svg>
+        </div>
+        <div className="cat-paws">
+          {/* дві лапки поряд, пальчики загинаються вниз через верхню межу */}
+          <svg viewBox="0 0 13 3" onClick={onPet}>
+            {mapToRects(PAW, 'paw1', 0)}
+            <g transform="translate(8,0)">{mapToRects(PAW, 'paw2', 0)}</g>
+          </svg>
+        </div>
       </div>
     </div>
   )

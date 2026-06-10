@@ -529,11 +529,38 @@ body {
 .cat-wrap {
   position: absolute;
   top: 0; /* = верхній край картки (перший in-flow елемент .stage) */
-  right: 32px;
-  width: 72px;
+  left: 0;
+  right: 0;
   pointer-events: none;
   line-height: 0;
   /* без transform/z-index — діти мають стекатися незалежно відносно картки */
+}
+/* слайдер їздить між кутами; left-анімація (не transform!), щоб діти
+   зберігали незалежне z-шарування відносно картки */
+.cat-slider {
+  position: absolute;
+  top: 0;
+  width: 72px;
+  left: calc(100% - 104px); /* правий кут (72px кота + 32px відступ) */
+  transition: left 2.6s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.cat-at-left .cat-slider {
+  left: 24px;
+}
+.cat-running .pixel-cat {
+  animation: cat-run-bob 0.24s steps(2, end) infinite;
+}
+.cat-running .cat-paws {
+  opacity: 0; /* під час бігу лапки не тримаються за край */
+}
+@keyframes cat-run-bob {
+  0%,
+  100% {
+    transform: translateY(-46%);
+  }
+  50% {
+    transform: translateY(-54%);
+  }
 }
 .pixel-cat {
   position: relative;
@@ -575,9 +602,12 @@ body {
   opacity: 0;
 }
 @media (max-width: 720px) {
-  .cat-wrap {
+  .cat-slider {
     width: 58px;
-    right: 18px;
+    left: calc(100% - 76px);
+  }
+  .cat-at-left .cat-slider {
+    left: 18px;
   }
   .pixel-cat svg {
     width: 58px;
